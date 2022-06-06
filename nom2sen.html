@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<HTML lang="fr">
+<meta charset="UTF-8">
+<HEAD>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Sénateurs français : Nom2SEN">
+<meta name="author" content="Guillaume JANDOT">
+<!--link rel="icon" type="image/png" href="nom2sen.png"-->
+<meta charset="UTF-8">
+<TITLE>Nom2SEN</TITLE>
+<STYLE>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 32px;
+  background-color: rgb(43, 43, 43);
+  height: 100vh;
+  text-align: center;
+  color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+#grille {
+  margin-left: auto;
+  margin-right: auto;
+  background-color:  #0077c7;
+}
+
+.grille { border-spacing:0; border-padding:0; background-color: #0077C7; }
+
+.grille td { width:25px; height:25px; text-align:center; position:relative; 
+				color:#FFFFFF; border:1px solid #FFFFFF; }
+
+#version a { font-size:0.35em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
+#numsen { font-size:0.5em; }
+</STYLE>
+<!--todo
+* score
+* si un autre nom de sen valide=>afficher la photo
+* absence de photo=>passer automatiquement au suivant
+* attn casse particule
+* attn accents/trémas...
+* espaces et traits d'union
+-->
+<noscript>L'application nécessite l'activation de Javascript.</noscript>
+<SCRIPT type="text/javascript">
+const VERNUM = "0.001";
+const VERDES = "G. JANDOT 06/06/2022";
+
+const MAXESSAI = 5;
+const BASE_SEN_URL = "https://www.senat.fr/";
+
+function elt(nom_obj)	{ return document.getElementById(nom_obj); }
+function show(nom_obj)	{ elt(nom_obj).style.display = ""; }
+function hide(nom_obj)	{ elt(nom_obj).style.display = "none"; }
+function clear(nom_obj)	{ elt(nom_obj).innerHTML = ""; }
+function id2img(id)		{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
+function rnd(n)			{ return Math.floor(n*Math.random()); } 
+
+var numessai = 0;
+var tab_propositions = new Array();
+var nomsen = "";
+var numsen = 0;
+
+
+function start()
+{
+	elt("vernum").innerHTML = VERNUM;
+	elt("version").title = VERDES;
+	
+	ajax(BASE_SEN_URL + "senateurs/sens_alpha.json", parsing);
+}
+
+ function ajax(url,callback)
+ {
+	var httpRequest = new XMLHttpRequest();
+	if (!httpRequest) { return false; }
+	httpRequest.onreadystatechange=function()
+	{
+		try
+		{
+			if (( httpRequest.readyState===XMLHttpRequest.DONE) && (httpRequest.status===200) )
+			{
+				callback(httpRequest.responseText);
+			}
+		} catch(e) { return false; }
+	}
+	httpRequest.open('GET',url);
+	httpRequest.send();
+	return true;
+ }
+
+ function strnorm(str)
+ //minuscules + retrait des accents
+ {
+	var r = str.toLowerCase();
+	r = r.replace(new RegExp(/[àáâãäå]/g),"a");
+	r = r.replace(new RegExp(/ç/g),"c");
+	r = r.replace(new RegExp(/[èéêë]/g),"e");
+	r = r.replace(new RegExp(/[ìíîï]/g),"i");
+	r = r.replace(new RegExp(/ñ/g),"n");
+	r = r.replace(new RegExp(/[òóôõö]/g),"o");
+	r = r.replace(new RegExp(/[ùúûü]/g),"u");
+	r = r.replace(new RegExp(/[ýÿ]/g),"y");
+	return r;
+ }
+ 
+ function sen2id(nom)
+ {
+	var r = strnorm(nom);
+	r = r.replace(new RegExp(/ /g),"_");
+	r = r.replace(new RegExp(/-/g),"_");
+	return r;
+ }
+
+
+ function parsing(texte)
+ {
+	var jsonobj = JSON.parse(texte);
+	var jsen = jsonobj['senateurs'];
+	for (var i=0; i<jsen.length; i++)
+	{
+		var senateur = new Object();
+		senateur.nom = jsen[i]['etat_civil']['nomusecap']; //particules (de) en minuscules)
+		senateur.prenom = jsen[i]['etat_civil']['prenomuse'];
+		senateur.mat = jsen[i]['matricule'];
+		senateur.id = senateur.nom + "_" + senateur.prenom + senateur.mat;
+		senateur.id = sen2id(senateur.id);
+		tab_senateurs.push(senateur);
+	}
+	melange_tabsen();
+	numsen = -1;
+	main();
+}
+
+function main()
+{
+	hide("restart");
+	hide("status");
+	clear("status");
+	show("entree");
+	elt("essai").focus();
+	elt("essai").value="";
+	
+	var submit = elt("submit");
+	submit.disabled = true;
+
+	numsen++;
+	elt("numsen").innerHTML = (numsen+1) + " / " + tab_senateurs.length;
+	elt("image").src = id2img(tab_senateurs[numsen].id);
+	//TODO : si possible, masquer la photo (précédente) le temps du chargement en cas de lenteurs réseau
+	clear("prenom");
+	
+	nomsen = tab_senateurs[numsen].nom.toUpperCase();
+	tab_propositions = [];
+	
+	numessai = -1;
+	aff_grille();
+	numessai = 0;
+	elt("compteur").innerHTML = "0 / " + nomsen.length;	
+}
+
+
+ var tab_senateurs = []; //objets "senateur"
+	// .nom
+	// .prenom
+	// .id
+	
+function melange_tabsen()
+{
+	//algo. de Fisher-Yates-Knuth
+    var i, j, tmp;
+    for (i = tab_senateurs.length - 1; i > 0; i--)
+	{
+        j = Math.floor(Math.random() * (i + 1));
+        tmp = tab_senateurs[i];
+        tab_senateurs[i] = tab_senateurs[j];
+        tab_senateurs[j] = tmp;
+    }
+}
+
+function aff_grille()
+{
+	var grille = elt("grille");
+	clear("grille");
+	tblBody = document.createElement("tbody");
+	for (var i=0; i<MAXESSAI; i++)
+	{
+		var row = document.createElement("tr");
+		for (var j=0; j<nomsen.length; j++)
+		{
+		  var cell = document.createElement("td");
+		  if (i<=numessai)
+		  {
+			var cellText = document.createTextNode(tab_propositions[i][j]);
+			if (nomsen[j]==tab_propositions[i][j])
+			{
+				cell.style.backgroundColor="green";
+			}
+		  }
+		  else
+		  {
+				var cellText = document.createTextNode(".");
+		  }
+		  cell.appendChild(cellText);
+		  row.appendChild(cell);
+		}
+		tblBody.appendChild(row);
+	}
+	grille.appendChild(tblBody);
+}
+
+function validation()
+{
+	var essai = elt("essai").value;
+	essai = essai.toUpperCase();
+
+	if (essai.length<nomsen.length)
+	{
+		alert("trop court");
+	}
+	if (essai.length>nomsen.length)
+	{
+		alert("trop long");
+	}
+	tab_propositions.push(essai);
+	elt("essai").value="";
+	majcpt();
+	
+	aff_grille();
+	
+  numessai++;
+
+  if (numessai==2) //(3e)=>dévoilement du prénom en indice
+  {
+	elt("prenom").innerHTML = tab_senateurs[numsen].prenom;
+  }
+  if ( (essai==nomsen) || (numessai>=MAXESSAI) )
+  {
+	if (essai==nomsen)
+	{
+		elt("status").innerHTML = "Gagné !";
+	}
+	else //numessai>=MAXESSAI
+	{
+		elt("status").innerHTML = "Perdu  ! (" + tab_senateurs[numsen].nom + ")";
+	}
+	hide("entree");
+	show("status");
+	if (numsen<tab_senateurs.length-1)
+	{
+		show("restart");
+	}
+  }
+}
+
+
+function majcpt()
+{
+	if (numessai<MAXESSAI)
+	{
+		var submit = elt("submit");
+		var essai = elt("essai").value;
+		elt("compteur").innerHTML = essai.length + " / " + nomsen.length;
+		if (essai.length==nomsen.length)
+		{
+			submit.disabled = false;
+			if (window.event.keyCode == 13)
+			{
+				validation();
+				return;
+			}
+		}
+		else
+		{
+			submit.disabled = true;
+		}
+	}
+}
+</SCRIPT>
+</HEAD>
+<BODY onload="start()" style="user-select:none">
+<!--div id="aide" onclick="show('help')">?</div-->
+<div id="erreur"></div>
+<div id="numsen"></div>
+<img id="image" height="150px"/ title="Trouvez le nom correspondant"
+	onclick="alert('Trouvez le nom correspondant'); elt('essai').focus();">
+<div id="prenom"></div>
+<TABLE id="grille" class="grille">
+</TABLE>
+<div id="entree">
+<INPUT type="text" id="essai" onchange="majcpt()" onkeypress="majcpt()" oninput="majcpt()">
+<INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
+<div id="compteur">0</div>
+</div>
+<div id="status"></div>
+<div id="version"><A HREF="https://github.com/gjandot/" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
+<button id="restart" style="display:none" onclick="main()" class="bouton">Encore !</button>
+<div id="help" style="display:none">
+Ceci est l'aide en ligne.<BR>
+Au 2<SUP>e essai, les espaces et traits d'union sont dévoilés (TODO)
+Au 3<SUP>e essai , le prénom est dévoilé
+Au 4<SUP>e essai, l'initiale est dévoilée (TODO)
+<BR>
+</div>
+</BODY>
+</HTML>
