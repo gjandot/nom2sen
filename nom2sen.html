@@ -19,32 +19,48 @@ body {
   margin: 0;
   padding: 0;
 }
+
 #grille {
   margin-left: auto;
   margin-right: auto;
   background-color:  #0077c7;
 }
-
 .grille { border-spacing:0; border-padding:0; background-color: #0077C7; }
-
 .grille td { width:25px; height:25px; text-align:center; position:relative; 
 				color:#FFFFFF; border:1px solid #FFFFFF; }
 
 #version a { font-size:0.35em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
 #numsen { font-size:0.5em; }
+
+.modal {
+  font-size:0.5em;
+  position: fixed;
+  z-index: 1;
+  left:99px;
+  top:99px;
+  width:50%;
+  padding:5px;
+  overflow: auto;
+  background-color: #000000CC;
+  border:3px white solid;
+  border-radius:20px;
+  text-align:justify;
+}
+
+
 </STYLE>
 <!--todo
+* de nicolaÿ ????
 * score
-* si un autre nom de sen valide=>afficher la photo
+* si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
 * absence de photo=>passer automatiquement au suivant
-* attn casse particule
 * attn accents/trémas...
 * espaces et traits d'union
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.001";
-const VERDES = "G. JANDOT 06/06/2022";
+const VERNUM = "0.002";
+const VERDES = "G. JANDOT 10/06/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -189,6 +205,7 @@ function aff_grille()
 		for (var j=0; j<nomsen.length; j++)
 		{
 		  var cell = document.createElement("td");
+
 		  if (i<=numessai)
 		  {
 			var cellText = document.createTextNode(tab_propositions[i][j]);
@@ -196,10 +213,32 @@ function aff_grille()
 			{
 				cell.style.backgroundColor="green";
 			}
+			else if (strnorm(nomsen[j])==strnorm(tab_propositions[i][j]))
+			//notification colorée des accents incorrects
+			{
+				cell.style.backgroundColor="#EBCD00";
+			}
 		  }
 		  else
 		  {
-				var cellText = document.createTextNode(".");
+			//dévoilement de l'initiale au dernier essai
+			if ((j==0) && (i+1==MAXESSAI) && (numessai+2==MAXESSAI))
+			{
+				var cellText = document.createTextNode(nomsen[0]);
+			}
+			else
+			{
+				//espaces et traits d'union après le premier essai
+				if ((numessai>=0) && ((nomsen[j]==" ") || (nomsen[j]=="-")) )
+				{
+					var cellText = document.createTextNode(nomsen[j]);
+					cell.style.backgroundColor="#90ACF9";
+				}
+				else
+				{
+					var cellText = document.createTextNode(".");
+				}
+			}
 		  }
 		  cell.appendChild(cellText);
 		  row.appendChild(cell);
@@ -279,7 +318,7 @@ function majcpt()
 </SCRIPT>
 </HEAD>
 <BODY onload="start()" style="user-select:none">
-<!--div id="aide" onclick="show('help')">?</div-->
+<div id="aide" onclick="show('help')">?</div>
 <div id="erreur"></div>
 <div id="numsen"></div>
 <img id="image" height="150px"/ title="Trouvez le nom correspondant"
@@ -295,11 +334,13 @@ function majcpt()
 <div id="status"></div>
 <div id="version"><A HREF="https://github.com/gjandot/" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
 <button id="restart" style="display:none" onclick="main()" class="bouton">Encore !</button>
-<div id="help" style="display:none">
-Ceci est l'aide en ligne.<BR>
-Au 2<SUP>e essai, les espaces et traits d'union sont dévoilés (TODO)
-Au 3<SUP>e essai , le prénom est dévoilé
-Au 4<SUP>e essai, l'initiale est dévoilée (TODO)
+<div id="help" style="display:none" class="modal">
+Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.<BR>
+Après le premier essai, les espaces et traits d'union sont, le cas échéant, dévoilés.<BR>
+Après deux essais, le prénom est dévoilé.<BR>
+Pour le dernier essai, l'initiale est dévoilée.<BR>
+<BR>
+<div id="fermeture" onclick="hide('help')">[OK]</div>
 <BR>
 </div>
 </BODY>
