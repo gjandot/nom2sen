@@ -9,36 +9,25 @@
 <meta charset="UTF-8">
 <TITLE>Nom2SEN</TITLE>
 <STYLE>
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 32px;
-  background-color: rgb(43, 43, 43);
-  height: 100vh;
-  text-align: center;
-  color: #ffffff;
-  margin: 0;
-  padding: 0;
-}
+body { font-family:Arial, Helvetica, sans-serif; font-size:16px; text-align:center;
+  background-color:#2C2C2C; color:#FFFFFF; }
 
-#grille {
-  margin-left: auto;
-  margin-right: auto;
-  background-color:  #0077c7;
-}
+#grille { font-size:2em; margin-left:auto; margin-right:auto;  margin-bottom:15px; background-color: #0077C7; }
 .grille { border-spacing:0; border-padding:0; background-color: #0077C7; }
 .grille td { width:25px; height:25px; text-align:center; position:relative; 
 				color:#FFFFFF; border:1px solid #FFFFFF; }
 
-#version a { font-size:0.35em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
-#numsen { font-size:0.5em; }
+#version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
 
-.modal {
-  font-size:0.5em;
+#aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor: pointer; padding:5px; }
+#affscore { position:fixed; top:5px; left:9px; border:1px solid; padding:5px; border-radius:8px; }
+
+#help {
   position: fixed;
   z-index: 1;
-  left:99px;
-  top:99px;
-  width:50%;
+  margin:auto;
+  top:50px;
+  left:50px;
   padding:5px;
   overflow: auto;
   background-color: #000000CC;
@@ -46,36 +35,33 @@ body {
   border-radius:20px;
   text-align:justify;
 }
-
-
 </STYLE>
 <!--todo
 * de nicolaÿ ????
-* score
+* si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
 * si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
 * absence de photo=>passer automatiquement au suivant
-* attn accents/trémas...
-* espaces et traits d'union
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.002";
-const VERDES = "G. JANDOT 10/06/2022";
+const VERNUM = "0.003";
+const VERDES = "G. JANDOT 12/06/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
+const tab_scores = [8, 5, 3, 2, 1];
 
 function elt(nom_obj)	{ return document.getElementById(nom_obj); }
 function show(nom_obj)	{ elt(nom_obj).style.display = ""; }
 function hide(nom_obj)	{ elt(nom_obj).style.display = "none"; }
 function clear(nom_obj)	{ elt(nom_obj).innerHTML = ""; }
 function id2img(id)		{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
-function rnd(n)			{ return Math.floor(n*Math.random()); } 
 
 var numessai = 0;
 var tab_propositions = new Array();
 var nomsen = "";
 var numsen = 0;
+var score = 0;
 
 
 function start()
@@ -154,6 +140,7 @@ function main()
 	hide("status");
 	clear("status");
 	show("entree");
+	show("pass");
 	elt("essai").focus();
 	elt("essai").value="";
 	
@@ -256,10 +243,12 @@ function validation()
 	if (essai.length<nomsen.length)
 	{
 		alert("trop court");
+		return;
 	}
 	if (essai.length>nomsen.length)
 	{
 		alert("trop long");
+		return;
 	}
 	tab_propositions.push(essai);
 	elt("essai").value="";
@@ -275,14 +264,23 @@ function validation()
   }
   if ( (essai==nomsen) || (numessai>=MAXESSAI) )
   {
+	hide("pass");
 	if (essai==nomsen)
 	{
-		elt("status").innerHTML = "Gagné !";
+		var points = tab_scores[numessai-1];
+		elt("status").innerHTML = "<font color='green'>Gagné !</font> (+ " + points + " point";
+		if (points > 1)
+		{
+			elt("status").innerHTML += "s";
+		}
+		elt("status").innerHTML += ")";
+		score = score + tab_scores[numessai-1];
 	}
 	else //numessai>=MAXESSAI
 	{
-		elt("status").innerHTML = "Perdu  ! (" + tab_senateurs[numsen].nom + ")";
+		elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
 	}
+	maj_score();
 	hide("entree");
 	show("status");
 	if (numsen<tab_senateurs.length-1)
@@ -292,6 +290,25 @@ function validation()
   }
 }
 
+function pass()
+{
+	elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
+	maj_score();
+	hide("entree");
+	hide("pass");
+	show("status");
+	if (numsen<tab_senateurs.length-1)
+	{
+		show("restart");
+	}
+}
+
+
+function maj_score()
+{
+	elt("score").innerHTML = score + " / " + (numsen+1)*tab_scores[0];
+	elt("score").innerHTML += " (" + Math.round(10000*score/((numsen+1)*tab_scores[0]))/100 + "%)";
+}
 
 function majcpt()
 {
@@ -318,6 +335,7 @@ function majcpt()
 </SCRIPT>
 </HEAD>
 <BODY onload="start()" style="user-select:none">
+<div id="affscore">SCORE : <span id="score">0</span></div>
 <div id="aide" onclick="show('help')">?</div>
 <div id="erreur"></div>
 <div id="numsen"></div>
@@ -331,16 +349,25 @@ function majcpt()
 <INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
 <div id="compteur">0</div>
 </div>
+<button id="pass" onclick="pass()">Passer</button>
 <div id="status"></div>
 <div id="version"><A HREF="https://github.com/gjandot/" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
 <button id="restart" style="display:none" onclick="main()" class="bouton">Encore !</button>
-<div id="help" style="display:none" class="modal">
+<div id="help" style="display:none">
 Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.<BR>
 Après le premier essai, les espaces et traits d'union sont, le cas échéant, dévoilés.<BR>
 Après deux essais, le prénom est dévoilé.<BR>
 Pour le dernier essai, l'initiale est dévoilée.<BR>
 <BR>
-<div id="fermeture" onclick="hide('help')">[OK]</div>
+<B>Score :</B><BR>
+<UL>
+<LI>1<SUP>er</SUP> essai : +8 points</LI>
+<LI>2<SUP>e</SUP> essai : +5 points</LI>
+<LI>3<SUP>e</SUP> essai : +3 points</LI>
+<LI>4<SUP>e</SUP> essai : +2 points</LI>
+<LI>5<SUP>e</SUP> essai : +1 point</LI>
+</UL>
+<center><button onclick="hide('help')">OK</button></center>
 <BR>
 </div>
 </BODY>
