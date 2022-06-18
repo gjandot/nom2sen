@@ -3,53 +3,46 @@
 <meta charset="UTF-8">
 <HEAD>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Sénateurs français : Nom2SEN">
+<meta name="description" content="Jeu noms Sénat France : Nom2SEN">
 <meta name="author" content="Guillaume JANDOT">
 <!--link rel="icon" type="image/png" href="nom2sen.png"-->
-<meta charset="UTF-8">
 <TITLE>Nom2SEN</TITLE>
 <STYLE>
 body { font-family:Arial, Helvetica, sans-serif; font-size:16px; text-align:center;
   background-color:#2C2C2C; color:#FFFFFF; }
+button { cursor:pointer; }
+
+#affscore { position:fixed; top:5px; left:9px; border:1px solid; padding:5px; border-radius:8px; }
+#pass { background-color:red; color:yellow; }
 
 #grille { font-size:2em; margin-left:auto; margin-right:auto;  margin-bottom:15px; background-color: #0077C7; }
 .grille { border-spacing:0; border-padding:0; background-color: #0077C7; }
 .grille td { width:25px; height:25px; text-align:center; position:relative; 
 				color:#FFFFFF; border:1px solid #FFFFFF; }
 
+#compteur { margin-top: 5px; }
 #version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
-
 #aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor: pointer; padding:5px; }
-#affscore { position:fixed; top:5px; left:9px; border:1px solid; padding:5px; border-radius:8px; }
-
-#help {
-  position: fixed;
-  z-index: 1;
-  margin:auto;
-  top:50px;
-  left:50px;
-  padding:5px;
-  overflow: auto;
-  background-color: #000000CC;
-  border:3px white solid;
-  border-radius:20px;
-  text-align:justify;
-}
+#help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
+		overflow: auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
+		text-align:justify; }
 </STYLE>
 <!--todo
 * de nicolaÿ ????
 * si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
-* si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
+* échap => pass ?
 * absence de photo=>passer automatiquement au suivant
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.003";
-const VERDES = "G. JANDOT 12/06/2022";
+const VERNUM = "0.004";
+const VERDES = "G. JANDOT 18/06/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
 const tab_scores = [8, 5, 3, 2, 1];
+const NB_LETTRES = 26;
+const A_CHARCODE = "a".charCodeAt(0);
 
 function elt(nom_obj)	{ return document.getElementById(nom_obj); }
 function show(nom_obj)	{ elt(nom_obj).style.display = ""; }
@@ -59,6 +52,7 @@ function id2img(id)		{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
 
 var numessai = 0;
 var tab_propositions = new Array();
+var tab_lettres = new Array();
 var nomsen = "";
 var numsen = 0;
 var score = 0;
@@ -72,8 +66,8 @@ function start()
 	ajax(BASE_SEN_URL + "senateurs/sens_alpha.json", parsing);
 }
 
- function ajax(url,callback)
- {
+function ajax(url,callback)
+{
 	var httpRequest = new XMLHttpRequest();
 	if (!httpRequest) { return false; }
 	httpRequest.onreadystatechange=function()
@@ -89,11 +83,21 @@ function start()
 	httpRequest.open('GET',url);
 	httpRequest.send();
 	return true;
- }
+}
+ 
+function imgok()
+{
+	show("image");
+}
 
- function strnorm(str)
- //minuscules + retrait des accents
- {
+function imgerr()
+{
+	alert("pas d'image");
+}
+
+function strnorm(str)
+//minuscules + retrait des accents
+{
 	var r = str.toLowerCase();
 	r = r.replace(new RegExp(/[àáâãäå]/g),"a");
 	r = r.replace(new RegExp(/ç/g),"c");
@@ -104,19 +108,19 @@ function start()
 	r = r.replace(new RegExp(/[ùúûü]/g),"u");
 	r = r.replace(new RegExp(/[ýÿ]/g),"y");
 	return r;
- }
+}
  
- function sen2id(nom)
- {
+function sen2id(nom)
+{
 	var r = strnorm(nom);
 	r = r.replace(new RegExp(/ /g),"_");
 	r = r.replace(new RegExp(/-/g),"_");
 	return r;
- }
+}
 
 
- function parsing(texte)
- {
+function parsing(texte)
+{
 	var jsonobj = JSON.parse(texte);
 	var jsen = jsonobj['senateurs'];
 	for (var i=0; i<jsen.length; i++)
@@ -130,6 +134,10 @@ function start()
 		tab_senateurs.push(senateur);
 	}
 	melange_tabsen();
+	for (i=0; i<NB_LETTRES; i++)
+	{
+		tab_lettres.push(0);
+	}
 	numsen = -1;
 	main();
 }
@@ -149,8 +157,8 @@ function main()
 
 	numsen++;
 	elt("numsen").innerHTML = (numsen+1) + " / " + tab_senateurs.length;
+	hide("image"); //image affichée de nouveau via imgok() en fin de chargement (pour gestion lenteurs)
 	elt("image").src = id2img(tab_senateurs[numsen].id);
-	//TODO : si possible, masquer la photo (précédente) le temps du chargement en cas de lenteurs réseau
 	clear("prenom");
 	
 	nomsen = tab_senateurs[numsen].nom.toUpperCase();
@@ -159,7 +167,7 @@ function main()
 	numessai = -1;
 	aff_grille();
 	numessai = 0;
-	elt("compteur").innerHTML = "0 / " + nomsen.length;	
+	elt("compteur").innerHTML = "0 / " + nomsen.length;
 }
 
 
@@ -181,6 +189,14 @@ function melange_tabsen()
     }
 }
 
+function init_tab_lettres()
+{
+	for (var i=0; i<NB_LETTRES; i++)
+	{
+		tab_lettres[i] = 0;
+	}
+}
+
 function aff_grille()
 {
 	var grille = elt("grille");
@@ -189,6 +205,21 @@ function aff_grille()
 	for (var i=0; i<MAXESSAI; i++)
 	{
 		var row = document.createElement("tr");
+
+		if ((i<=numessai) && (numessai>=0))
+		{
+			//inventaire des lettres du mot à trouver (26 compteurs)
+			init_tab_lettres();
+			for (var j=0; j<nomsen.length; j++)
+			{	
+				//on ne compte pas les lettres bien placées
+				if (strnorm(nomsen[j])!=strnorm(tab_propositions[i][j]))
+				{
+					tab_lettres[strnorm(nomsen[j]).charCodeAt(0)-A_CHARCODE]++;
+				}
+			}
+		}
+
 		for (var j=0; j<nomsen.length; j++)
 		{
 		  var cell = document.createElement("td");
@@ -196,14 +227,26 @@ function aff_grille()
 		  if (i<=numessai)
 		  {
 			var cellText = document.createTextNode(tab_propositions[i][j]);
+			
 			if (nomsen[j]==tab_propositions[i][j])
 			{
 				cell.style.backgroundColor="green";
 			}
-			else if (strnorm(nomsen[j])==strnorm(tab_propositions[i][j]))
-			//notification colorée des accents incorrects
+			else
 			{
-				cell.style.backgroundColor="#EBCD00";
+				if (strnorm(nomsen[j])==strnorm(tab_propositions[i][j]))
+				//notification colorée des accents incorrects
+				{
+					cell.style.backgroundColor="#EBCD00";
+				}
+				else
+				{
+					if (tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]>0)
+					{
+						cell.style.backgroundColor="orange";
+						tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]--;
+					}
+				}
 			}
 		  }
 		  else
@@ -306,8 +349,34 @@ function pass()
 
 function maj_score()
 {
+	var pct = Math.round(10000*score/((numsen+1)*tab_scores[0]))/100;
+	var couleur = "grey";
 	elt("score").innerHTML = score + " / " + (numsen+1)*tab_scores[0];
-	elt("score").innerHTML += " (" + Math.round(10000*score/((numsen+1)*tab_scores[0]))/100 + "%)";
+	elt("score").innerHTML += " (" + pct + "%)";
+	console.log(pct);
+	if (pct>=80)
+	{
+		couleur = "green";
+	}
+	else
+	{
+		if (pct>=50)
+		{
+			couleur = "#EBCD00";
+		}
+		else
+		{
+			if (pct>=25)
+			{
+				couleur = "orange";
+			}
+			else
+			{
+				couleur = "red";
+			}
+		}
+	}
+	elt("affscore").style.backgroundColor = couleur;
 }
 
 function majcpt()
@@ -320,7 +389,7 @@ function majcpt()
 		if (essai.length==nomsen.length)
 		{
 			submit.disabled = false;
-			if (window.event.keyCode == 13)
+			if (window.event.keyCode == 13) //entrée
 			{
 				validation();
 				return;
@@ -335,12 +404,14 @@ function majcpt()
 </SCRIPT>
 </HEAD>
 <BODY onload="start()" style="user-select:none">
-<div id="affscore">SCORE : <span id="score">0</span></div>
+<div id="affscore" onclick="show('help')">SCORE : <span id="score">0</span></div>
+<button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
 <div id="aide" onclick="show('help')">?</div>
 <div id="erreur"></div>
 <div id="numsen"></div>
 <img id="image" height="150px"/ title="Trouvez le nom correspondant"
-	onclick="alert('Trouvez le nom correspondant'); elt('essai').focus();">
+	onclick="alert('Trouvez le nom correspondant'); elt('essai').focus();"
+	onload="imgok()" onerror="imgerr()">
 <div id="prenom"></div>
 <TABLE id="grille" class="grille">
 </TABLE>
@@ -349,12 +420,16 @@ function majcpt()
 <INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
 <div id="compteur">0</div>
 </div>
-<button id="pass" onclick="pass()">Passer</button>
 <div id="status"></div>
-<div id="version"><A HREF="https://github.com/gjandot/" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
+<div id="version"><A HREF="https://github.com/gjandot/nom2sen" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
 <button id="restart" style="display:none" onclick="main()" class="bouton">Encore !</button>
 <div id="help" style="display:none">
-Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.<BR>
+<B>Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.</B><BR>
+<BR>
+Les lettres bien placées sont signalées en <span style="background-color:green">VERT</span>.<BR>
+Les erreurs d'accentuation sont signalées en <span style="background-color:#EBCD00">JAUNE</span>.<BR>
+Les lettres présentes dans le nom mais mal placées sont signalées en <span style="background-color:orange">ORANGE</span>.<BR>
+<BR>
 Après le premier essai, les espaces et traits d'union sont, le cas échéant, dévoilés.<BR>
 Après deux essais, le prénom est dévoilé.<BR>
 Pour le dernier essai, l'initiale est dévoilée.<BR>
