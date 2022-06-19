@@ -35,8 +35,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.004";
-const VERDES = "G. JANDOT 18/06/2022";
+const VERNUM = "0.005";
+const VERDES = "G. JANDOT 19/06/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -350,32 +350,20 @@ function pass()
 function maj_score()
 {
 	var pct = Math.round(10000*score/((numsen+1)*tab_scores[0]))/100;
-	var couleur = "grey";
+	var couleur = "rgb(";
 	elt("score").innerHTML = score + " / " + (numsen+1)*tab_scores[0];
 	elt("score").innerHTML += " (" + pct + "%)";
-	console.log(pct);
-	if (pct>=80)
+	if (pct>50)
 	{
-		couleur = "green";
+		couleur += (100-Math.round(pct))*3.4+34;
+		couleur += ", 204";
 	}
 	else
 	{
-		if (pct>=50)
-		{
-			couleur = "#EBCD00";
-		}
-		else
-		{
-			if (pct>=25)
-			{
-				couleur = "orange";
-			}
-			else
-			{
-				couleur = "red";
-			}
-		}
+		couleur += "204, ";
+		couleur += Math.round(pct)*3.4+34;
 	}
+	couleur += ", 34)";
 	elt("affscore").style.backgroundColor = couleur;
 }
 
