@@ -15,12 +15,13 @@ button { cursor:pointer; }
 #affscore { position:fixed; top:5px; left:9px; border:1px solid; padding:5px; border-radius:8px; }
 #pass { background-color:red; color:yellow; }
 
-#grille { font-size:2em; margin-left:auto; margin-right:auto;  margin-bottom:15px; background-color: #0077C7; }
-.grille { border-spacing:0; border-padding:0; background-color: #0077C7; }
-.grille td { width:25px; height:25px; text-align:center; position:relative; 
+.grille { font-size:2em; margin-left:auto; margin-right:auto;  margin-bottom:15px; 
+			border-spacing:0; border-padding:0; }
+.grille td { width:25px; height:25px; text-align:center; position:relative;
 				color:#FFFFFF; border:1px solid #FFFFFF; }
+#grille { background-color:#0077C7; }
+#proposition { background-color:#44AAFF; }
 
-#compteur { margin-top: 5px; }
 #version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
 #aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor: pointer; padding:5px; }
 #help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
@@ -28,15 +29,15 @@ button { cursor:pointer; }
 		text-align:justify; }
 </STYLE>
 <!--todo
+* mal placées et mal accentuées 
 * de nicolaÿ ????
-* si un autre nom de sen valide=>afficher la photo (ATTN homonymes)
-* échap => pass ?
+* si un autre nom de sen valide=>afficher la photo ? (ATTN homonymes)
 * absence de photo=>passer automatiquement au suivant
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.005";
-const VERDES = "G. JANDOT 19/06/2022";
+const VERNUM = "0.006";
+const VERDES = "G. JANDOT 23/06/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -44,18 +45,28 @@ const tab_scores = [8, 5, 3, 2, 1];
 const NB_LETTRES = 26;
 const A_CHARCODE = "a".charCodeAt(0);
 
-function elt(nom_obj)	{ return document.getElementById(nom_obj); }
-function show(nom_obj)	{ elt(nom_obj).style.display = ""; }
-function hide(nom_obj)	{ elt(nom_obj).style.display = "none"; }
-function clear(nom_obj)	{ elt(nom_obj).innerHTML = ""; }
-function id2img(id)		{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
+function elt(nom_obj)		{ return document.getElementById(nom_obj); }
+function show(nom_obj)		{ elt(nom_obj).style.display = ""; }
+function hide(nom_obj)		{ elt(nom_obj).style.display = "none"; }
+function clear(nom_obj)		{ elt(nom_obj).innerHTML = ""; }
+function enable(nom_obj)	{ elt(nom_obj).disabled = false; }
+function disable(nom_obj)	{ elt(nom_obj).disabled = true; }
+function id2img(id)			{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
 
 var numessai = 0;
 var tab_propositions = new Array();
+var proposition = "";
 var tab_lettres = new Array();
+var tab_senateurs = []; //objets "senateur" (nom/prenom/id)
 var nomsen = "";
 var numsen = 0;
 var score = 0;
+
+const ST_GAME = 0;
+const ST_HELP = 1;
+const ST_END = 2;
+var state = ST_GAME;
+var prev_state = ST_GAME;
 
 
 function start()
@@ -139,21 +150,20 @@ function parsing(texte)
 		tab_lettres.push(0);
 	}
 	numsen = -1;
+	document.addEventListener('keydown', clavier);
 	main();
 }
 
 function main()
 {
+	state = ST_GAME;
 	hide("restart");
 	hide("status");
 	clear("status");
 	show("entree");
 	show("pass");
-	elt("essai").focus();
-	elt("essai").value="";
-	
-	var submit = elt("submit");
-	submit.disabled = true;
+	proposition = "";	
+	disable("submit");
 
 	numsen++;
 	elt("numsen").innerHTML = (numsen+1) + " / " + tab_senateurs.length;
@@ -166,16 +176,69 @@ function main()
 	
 	numessai = -1;
 	aff_grille();
+	aff_proposition();
 	numessai = 0;
-	elt("compteur").innerHTML = "0 / " + nomsen.length;
 }
 
+function clavier()
+{
+	if (event.key=="Shift")
+	{
+		return;
+	}
+	if (state==ST_HELP)
+	{
+		hide_help();
+		return;
+	}	
+	if (event.key=="Enter")
+	{
+		if (state==ST_GAME)
+		{
+			validation();
+		}
+		else //state==ST_END
+		{
+			main();
+		}
+		return;
+	}
+	if (event.key=="Escape")
+	{
+		if (state==ST_GAME)
+		{
+			pass();
+			return;
+		}
+	}
+	if ( (event.key=="Backspace") || (event.key=="Delete") )
+	{
+		if (proposition.length>0)
+		{
+			//retrait du dernier caractère
+			 proposition = proposition.substring(0,proposition.length-1);
+			 disable("submit");
+		}
+	}
+	if (event.key=="?")
+	{
+		show_help();
+		return;
+	}
+	if (event.key.length==1)
+	{
+		if (proposition.length<nomsen.length)
+		{
+			proposition += event.key.toUpperCase();
+		}
+		if (proposition.length==nomsen.length)
+		{
+			enable("submit");
+		}
+	}
+	aff_proposition();
+}
 
- var tab_senateurs = []; //objets "senateur"
-	// .nom
-	// .prenom
-	// .id
-	
 function melange_tabsen()
 {
 	//algo. de Fisher-Yates-Knuth
@@ -199,7 +262,7 @@ function init_tab_lettres()
 
 function aff_grille()
 {
-	var grille = elt("grille");
+	var tableau = elt("grille");
 	clear("grille");
 	tblBody = document.createElement("tbody");
 	for (var i=0; i<MAXESSAI; i++)
@@ -275,29 +338,50 @@ function aff_grille()
 		}
 		tblBody.appendChild(row);
 	}
-	grille.appendChild(tblBody);
+	tableau.appendChild(tblBody);
+}
+
+function aff_proposition()
+{
+	var tableau = elt("proposition");
+	clear("proposition");
+	tblBody = document.createElement("tbody");
+	var row = document.createElement("tr");
+	if (proposition.length>0)
+	{
+		for (var i=0; i<proposition.length; i++)
+		{
+			var cell = document.createElement("td");
+			var cellText = document.createTextNode(proposition[i]);
+			cell.appendChild(cellText);
+			row.appendChild(cell);
+		}
+	}
+	for (var i=proposition.length; i<nomsen.length; i++)
+	{
+		var cell = document.createElement("td");
+		var cellText = document.createTextNode(".");
+		cell.appendChild(cellText);
+		row.appendChild(cell);
+	}
+	tblBody.appendChild(row);
+	tableau.appendChild(tblBody);
 }
 
 function validation()
 {
-	var essai = elt("essai").value;
-	essai = essai.toUpperCase();
-
-	if (essai.length<nomsen.length)
+	var essai = proposition;
+	if (essai.length!=nomsen.length)
 	{
-		alert("trop court");
 		return;
 	}
-	if (essai.length>nomsen.length)
-	{
-		alert("trop long");
-		return;
-	}
-	tab_propositions.push(essai);
-	elt("essai").value="";
-	majcpt();
-	
+	tab_propositions.push(proposition);
+	proposition = "";
+	aff_proposition();
+	disable("submit");
+		
 	aff_grille();
+	
 	
   numessai++;
 
@@ -307,6 +391,7 @@ function validation()
   }
   if ( (essai==nomsen) || (numessai>=MAXESSAI) )
   {
+	state = ST_END;
 	hide("pass");
 	if (essai==nomsen)
 	{
@@ -335,6 +420,7 @@ function validation()
 
 function pass()
 {
+	state = ST_END;
 	elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
 	maj_score();
 	hide("entree");
@@ -367,50 +453,38 @@ function maj_score()
 	elt("affscore").style.backgroundColor = couleur;
 }
 
-function majcpt()
+
+function show_help()
 {
-	if (numessai<MAXESSAI)
-	{
-		var submit = elt("submit");
-		var essai = elt("essai").value;
-		elt("compteur").innerHTML = essai.length + " / " + nomsen.length;
-		if (essai.length==nomsen.length)
-		{
-			submit.disabled = false;
-			if (window.event.keyCode == 13) //entrée
-			{
-				validation();
-				return;
-			}
-		}
-		else
-		{
-			submit.disabled = true;
-		}
-	}
+	show("help");
+	prev_state = state;
+	state = ST_HELP;
+}
+function hide_help()
+{
+	hide("help");
+	state = prev_state;
 }
 </SCRIPT>
 </HEAD>
 <BODY onload="start()" style="user-select:none">
-<div id="affscore" onclick="show('help')">SCORE : <span id="score">0</span></div>
+<div id="affscore" onclick="show_help()">SCORE : <span id="score">0</span></div>
 <button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
-<div id="aide" onclick="show('help')">?</div>
+<div id="aide" onclick="show_help()">?</div>
 <div id="erreur"></div>
 <div id="numsen"></div>
 <img id="image" height="150px"/ title="Trouvez le nom correspondant"
-	onclick="alert('Trouvez le nom correspondant'); elt('essai').focus();"
-	onload="imgok()" onerror="imgerr()">
+	onclick="show_help()" onload="imgok()" onerror="imgerr()">
 <div id="prenom"></div>
-<TABLE id="grille" class="grille">
-</TABLE>
+<TABLE id="grille" class="grille" onclick="show_help()"></TABLE>
 <div id="entree">
-<INPUT type="text" id="essai" onchange="majcpt()" onkeypress="majcpt()" oninput="majcpt()">
+<TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
+<TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
 <INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
-<div id="compteur">0</div>
 </div>
 <div id="status"></div>
 <div id="version"><A HREF="https://github.com/gjandot/nom2sen" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
-<button id="restart" style="display:none" onclick="main()" class="bouton">Encore !</button>
+<button id="restart" style="display:none" onclick="main()" class="bouton">Continuer</button>
 <div id="help" style="display:none">
 <B>Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.</B><BR>
 <BR>
@@ -430,7 +504,7 @@ Pour le dernier essai, l'initiale est dévoilée.<BR>
 <LI>4<SUP>e</SUP> essai : +2 points</LI>
 <LI>5<SUP>e</SUP> essai : +1 point</LI>
 </UL>
-<center><button onclick="hide('help')">OK</button></center>
+<center><button onclick="hide_help()">OK</button></center>
 <BR>
 </div>
 </BODY>
