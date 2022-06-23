@@ -13,6 +13,7 @@ body { font-family:Arial, Helvetica, sans-serif; font-size:16px; text-align:cent
 button { cursor:pointer; }
 
 #affscore { position:fixed; top:5px; left:9px; border:1px solid; padding:5px; border-radius:8px; }
+#points { position:fixed; top:33px; left:15px; }
 #pass { background-color:red; color:yellow; }
 
 .grille { font-size:2em; margin-left:auto; margin-right:auto;  margin-bottom:15px; 
@@ -23,9 +24,9 @@ button { cursor:pointer; }
 #proposition { background-color:#44AAFF; }
 
 #version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
-#aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor: pointer; padding:5px; }
+#aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor:pointer; padding:5px; }
 #help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
-		overflow: auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
+		overflow:auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
 		text-align:justify; }
 </STYLE>
 <!--todo
@@ -36,7 +37,7 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.006";
+const VERNUM = "0.007";
 const VERDES = "G. JANDOT 23/06/2022";
 
 const MAXESSAI = 5;
@@ -44,6 +45,7 @@ const BASE_SEN_URL = "https://www.senat.fr/";
 const tab_scores = [8, 5, 3, 2, 1];
 const NB_LETTRES = 26;
 const A_CHARCODE = "a".charCodeAt(0);
+const SMALL_CIRCLE = "&#9679;";
 
 function elt(nom_obj)		{ return document.getElementById(nom_obj); }
 function show(nom_obj)		{ elt(nom_obj).style.display = ""; }
@@ -162,7 +164,9 @@ function main()
 	clear("status");
 	show("entree");
 	show("pass");
-	proposition = "";	
+	proposition = "";
+	elt("essai").value = "";
+	elt("essai").focus();
 	disable("submit");
 
 	numsen++;
@@ -178,6 +182,7 @@ function main()
 	aff_grille();
 	aff_proposition();
 	numessai = 0;
+	maj_points(1);	
 }
 
 function clavier()
@@ -225,6 +230,10 @@ function clavier()
 		show_help();
 		return;
 	}
+	if (event.key==".")
+	{
+		return;
+	}
 	if (event.key.length==1)
 	{
 		if (proposition.length<nomsen.length)
@@ -237,6 +246,18 @@ function clavier()
 		}
 	}
 	aff_proposition();
+}
+
+function typing()
+{
+	if (elt("essai").value.length==nomsen.length)
+	{
+		enable("submit");
+	}
+	else
+	{
+		disable("submit");
+	}
 }
 
 function melange_tabsen()
@@ -371,24 +392,29 @@ function aff_proposition()
 function validation()
 {
 	var essai = proposition;
+	<!--cas d'un appareil sans clavier physique (tél.)-->
+	if (proposition=="")
+	{
+		essai = elt("essai").value.toUpperCase();
+	}
 	if (essai.length!=nomsen.length)
 	{
 		return;
 	}
-	tab_propositions.push(proposition);
+	tab_propositions.push(essai);
 	proposition = "";
+	elt("essai").value = "";
 	aff_proposition();
 	disable("submit");
-		
+	
 	aff_grille();
-	
-	
-  numessai++;
+	numessai++;
 
   if (numessai==2) //(3e)=>dévoilement du prénom en indice
   {
 	elt("prenom").innerHTML = tab_senateurs[numsen].prenom;
   }
+  
   if ( (essai==nomsen) || (numessai>=MAXESSAI) )
   {
 	state = ST_END;
@@ -407,6 +433,7 @@ function validation()
 	else //numessai>=MAXESSAI
 	{
 		elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
+		maj_points(0);
 	}
 	maj_score();
 	hide("entree");
@@ -416,12 +443,17 @@ function validation()
 		show("restart");
 	}
   }
+  else
+  {
+  	maj_points(1);
+  }
 }
 
 function pass()
 {
 	state = ST_END;
 	elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
+	maj_points(0);
 	maj_score();
 	hide("entree");
 	hide("pass");
@@ -432,6 +464,18 @@ function pass()
 	}
 }
 
+
+function maj_points(val)
+{
+	clear("points");
+	if (val>0)
+	{
+		for (var i=0; i<tab_scores[numessai]; i++)
+		{
+			elt("points").innerHTML += SMALL_CIRCLE;
+		}
+	}
+}
 
 function maj_score()
 {
@@ -469,6 +513,7 @@ function hide_help()
 </HEAD>
 <BODY onload="start()" style="user-select:none">
 <div id="affscore" onclick="show_help()">SCORE : <span id="score">0</span></div>
+<div id="points"></div>
 <button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
 <div id="aide" onclick="show_help()">?</div>
 <div id="erreur"></div>
@@ -479,13 +524,14 @@ function hide_help()
 <TABLE id="grille" class="grille" onclick="show_help()"></TABLE>
 <div id="entree">
 <TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
-<TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
+<INPUT type="text" id="essai" oninput="typing()">
+<!--zone pour saisie sans clavier physique (tél.)-->
 <INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
 </div>
 <div id="status"></div>
 <div id="version"><A HREF="https://github.com/gjandot/nom2sen" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
 <button id="restart" style="display:none" onclick="main()" class="bouton">Continuer</button>
-<div id="help" style="display:none">
+<div id="help" style="display:none" onclick="hide_help()">
 <B>Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.</B><BR>
 <BR>
 Les lettres bien placées sont signalées en <span style="background-color:green">VERT</span>.<BR>
