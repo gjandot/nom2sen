@@ -23,7 +23,12 @@ button { cursor:pointer; }
 #grille { background-color:#0077C7; }
 #proposition { background-color:#44AAFF; }
 
-#version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; }
+.fin { border-radius:12px; padding:5px; margin:3px; }
+.perdu { color:#AA0000; border:1px solid red; background-color:#FF8888; }
+.gagne { color:#00AA00; border:1px solid green; background-color:#88FF88; }
+.continuer { margin-top:20px; }
+
+#version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; z-index:-1; }
 #aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor:pointer; padding:5px; }
 #help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
 		overflow:auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
@@ -31,14 +36,12 @@ button { cursor:pointer; }
 </STYLE>
 <!--todo
 * mal placées et mal accentuées 
-* de nicolaÿ ????
-* si un autre nom de sen valide=>afficher la photo ? (ATTN homonymes)
 * absence de photo=>passer automatiquement au suivant
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.007";
-const VERDES = "G. JANDOT 23/06/2022";
+const VERNUM = "0.008";
+const VERDES = "G. JANDOT 01/07/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -139,13 +142,27 @@ function parsing(texte)
 	for (var i=0; i<jsen.length; i++)
 	{
 		var senateur = new Object();
-		senateur.nom = jsen[i]['etat_civil']['nomusecap']; //particules (de) en minuscules)
+		senateur.nom = jsen[i]['etat_civil']['nomusecap']; //particules (de) en minuscules
 		senateur.prenom = jsen[i]['etat_civil']['prenomuse'];
 		senateur.mat = jsen[i]['matricule'];
+		if (senateur.mat == "14169X") //beurck / yuck !
+		{
+			senateur.nom = "de Nicolaÿ"; //de NICOLAY, sans tréma, dans le fichier json :-(
+		}
 		senateur.id = senateur.nom + "_" + senateur.prenom + senateur.mat;
 		senateur.id = sen2id(senateur.id);
 		tab_senateurs.push(senateur);
 	}
+	
+	// test mode : dump data for visual checking (https://www.senat.fr/senateurs/senatl.html)
+	if (window.location.search.toLowerCase()== "?test")
+	{
+		for (var i=0; i<tab_senateurs.length; i++)
+		{
+			console.log(tab_senateurs[i].nom + " " + tab_senateurs[i].prenom + " (" + tab_senateurs[i].mat + ")");
+		}
+	}
+	
 	melange_tabsen();
 	for (i=0; i<NB_LETTRES; i++)
 	{
@@ -153,6 +170,8 @@ function parsing(texte)
 	}
 	numsen = -1;
 	document.addEventListener('keydown', clavier);
+	hide("loading");
+	show("content");
 	main();
 }
 
@@ -187,10 +206,6 @@ function main()
 
 function clavier()
 {
-	if (event.key=="Shift")
-	{
-		return;
-	}
 	if (state==ST_HELP)
 	{
 		hide_help();
@@ -216,47 +231,34 @@ function clavier()
 			return;
 		}
 	}
-	if ( (event.key=="Backspace") || (event.key=="Delete") )
-	{
-		if (proposition.length>0)
-		{
-			//retrait du dernier caractère
-			 proposition = proposition.substring(0,proposition.length-1);
-			 disable("submit");
-		}
-	}
 	if (event.key=="?")
 	{
 		show_help();
 		return;
 	}
-	if (event.key==".")
-	{
-		return;
-	}
-	if (event.key.length==1)
-	{
-		if (proposition.length<nomsen.length)
-		{
-			proposition += event.key.toUpperCase();
-		}
-		if (proposition.length==nomsen.length)
-		{
-			enable("submit");
-		}
-	}
-	aff_proposition();
 }
 
 function typing()
 {
-	if (elt("essai").value.length==nomsen.length)
+	elt("essai").value = elt("essai").value.replace(new RegExp(/[.?,;:]/g),"");
+	
+	if (elt("essai").value.length>nomsen.length)
+	{
+		elt("essai").value = elt("essai").value.slice(0, nomsen.length);
+	}
+		
+	proposition = elt("essai").value.toUpperCase();
+	aff_proposition();
+
+	if (proposition.length==nomsen.length)
 	{
 		enable("submit");
+		elt("submit").style.cursor="pointer";
 	}
 	else
 	{
 		disable("submit");
+		elt("submit").style.cursor="default";
 	}
 }
 
@@ -392,7 +394,7 @@ function aff_proposition()
 function validation()
 {
 	var essai = proposition;
-	<!--cas d'un appareil sans clavier physique (tél.)-->
+	//cas d'un appareil sans clavier physique (tél.)
 	if (proposition=="")
 	{
 		essai = elt("essai").value.toUpperCase();
@@ -422,7 +424,7 @@ function validation()
 	if (essai==nomsen)
 	{
 		var points = tab_scores[numessai-1];
-		elt("status").innerHTML = "<font color='green'>Gagné !</font> (+ " + points + " point";
+		elt("status").innerHTML = "<span class='fin gagne'>Gagné !</span> (+ " + points + " point";
 		if (points > 1)
 		{
 			elt("status").innerHTML += "s";
@@ -432,7 +434,7 @@ function validation()
 	}
 	else //numessai>=MAXESSAI
 	{
-		elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
+		elt("status").innerHTML = "<span class='fin perdu'>Perdu !<span> (" + nomsen + ")";
 		maj_points(0);
 	}
 	maj_score();
@@ -452,7 +454,7 @@ function validation()
 function pass()
 {
 	state = ST_END;
-	elt("status").innerHTML = "<font color='red'>Perdu  !</font> (" + nomsen + ")";
+	elt("status").innerHTML = "<span class='fin perdu'>Perdu  !</span> (" + nomsen + ")";
 	maj_points(0);
 	maj_score();
 	hide("entree");
@@ -507,30 +509,34 @@ function show_help()
 function hide_help()
 {
 	hide("help");
+	elt("essai").focus();
 	state = prev_state;
 }
 </SCRIPT>
 </HEAD>
 <BODY onload="start()" style="user-select:none">
-<div id="affscore" onclick="show_help()">SCORE : <span id="score">0</span></div>
-<div id="points"></div>
-<button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
-<div id="aide" onclick="show_help()">?</div>
-<div id="erreur"></div>
-<div id="numsen"></div>
-<img id="image" height="150px"/ title="Trouvez le nom correspondant"
-	onclick="show_help()" onload="imgok()" onerror="imgerr()">
-<div id="prenom"></div>
-<TABLE id="grille" class="grille" onclick="show_help()"></TABLE>
-<div id="entree">
-<TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
-<INPUT type="text" id="essai" oninput="typing()">
-<!--zone pour saisie sans clavier physique (tél.)-->
-<INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
-</div>
-<div id="status"></div>
-<div id="version"><A HREF="https://github.com/gjandot/nom2sen" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
-<button id="restart" style="display:none" onclick="main()" class="bouton">Continuer</button>
+<div id="loading">Chargement des données...</div>
+<div id="content" style="display:none">
+	<div id="affscore" onclick="show_help()">SCORE : <span id="score">0</span></div>
+	<div id="points"></div>
+	<button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
+	<div id="aide" onclick="show_help()">?</div>
+	<div id="erreur"></div>
+	<div id="numsen"></div>
+	<img id="image" height="150px"/ title="Trouvez le nom correspondant"
+		onclick="show_help()" onload="imgok()" onerror="imgerr()">
+	<div id="prenom"></div>
+	<TABLE id="grille" class="grille" onclick="show_help()"></TABLE>
+	<div id="entree">
+		<TABLE id="proposition" class="grille" onclick="show_help()"></TABLE>
+		<INPUT type="text" id="essai" oninput="typing()">
+		<!--zone pour saisie sans clavier physique (tél.)-->
+		<INPUT type="SUBMIT" id="submit" onclick="validation()" value="Valider">
+	</div><!--/entree-->
+	<div id="status"></div>
+	<button id="restart" style="display:none" onclick="main()" class="continuer">Continuer</button>
+	<div id="version"><A HREF="https://github.com/gjandot/nom2sen" TARGET="_blank">Version <span id="vernum">0.000</span></A></div>
+	</div>
 <div id="help" style="display:none" onclick="hide_help()">
 <B>Le but du jeu est de trouver l'orthographe exacte du nom correspondant à la photographie affichée.</B><BR>
 <BR>
