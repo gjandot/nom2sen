@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <HTML lang="fr">
-<meta charset="UTF-8">
 <HEAD>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Jeu noms Sénat France : Nom2SEN">
 <meta name="author" content="Guillaume JANDOT">
@@ -40,8 +40,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.009";
-const VERDES = "G. JANDOT 03/07/2022";
+const VERNUM = "0.010";
+const VERDES = "G. JANDOT 12/07/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -493,7 +493,7 @@ function maj_score()
 	var maxpot = (numsen+1-nberrimg)*tab_scores[0];
 	var pct = Math.round(10000*score/maxpot)/100;
 	var couleur = "rgb(";
-	elt("score").innerHTML = score + " / " + (numsen+1-nberrimg)*tab_scores[0];
+	elt("score").innerHTML = score + " / " + maxpot;
 	elt("score").innerHTML += " (" + pct + "%)";
 	if (pct>50)
 	{
