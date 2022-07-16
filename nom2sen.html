@@ -35,13 +35,15 @@ button { cursor:pointer; }
 		text-align:justify; }
 </STYLE>
 <!--todo
-* mal placées et mal accentuées 
+* espaces et traits d'union mal placés
+* mal placées et mal accentuées
+* choix déjà essayés ?
 * refactoring
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.010";
-const VERDES = "G. JANDOT 12/07/2022";
+const VERNUM = "0.011";
+const VERDES = "G. JANDOT 16/07/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -66,6 +68,7 @@ var tab_senateurs = []; //objets "senateur" (nom/prenom/id)
 var nomsen = "";
 var numsen = 0;
 var score = 0;
+var timeout_imgload;
 var nberrimg = 0; //nombre de photos introuvables
 
 const ST_GAME = 0;
@@ -101,14 +104,22 @@ function ajax(url,callback)
 	httpRequest.send();
 	return true;
 }
+
+function imgload()
+{
+	elt("prenom").innerHTML = "Chargement de la photographie...";
+}
  
 function imgok()
 {
+	clearTimeout(timeout_imgload);
+	clear("prenom");
 	show("image");
 }
 
 function imgerr()
 {
+	clearTimeout(timeout_imgload);
 	elt("prenom").innerHTML = "Erreur de chargement de la photographie";
 	nberrimg++;
 	hide("entree");
@@ -169,10 +180,12 @@ function parsing(texte)
 	}
 	
 	melange_tabsen();
+
 	for (i=0; i<NB_LETTRES; i++)
 	{
 		tab_lettres.push(0);
 	}
+
 	numsen = -1;
 	document.addEventListener('keydown', clavier);
 	hide("loading");
@@ -196,8 +209,9 @@ function main()
 	numsen++;
 	elt("numsen").innerHTML = (numsen+1) + " / " + tab_senateurs.length;
 	hide("image"); //image affichée de nouveau via imgok() en fin de chargement (pour gestion lenteurs)
-	elt("image").src = id2img(tab_senateurs[numsen].id);
 	clear("prenom");
+	elt("image").src = id2img(tab_senateurs[numsen].id);
+	timeout_imgload = setTimeout(imgload, 500); //affichage d'un texte si le chargement dépasse 1/2 seconde
 	
 	nomsen = tab_senateurs[numsen].nom.toUpperCase();
 	tab_propositions = [];
@@ -302,11 +316,17 @@ function aff_grille()
 			//inventaire des lettres du mot à trouver (26 compteurs)
 			init_tab_lettres();
 			for (var j=0; j<nomsen.length; j++)
-			{	
-				//on ne compte pas les lettres bien placées
-				if (strnorm(nomsen[j])!=strnorm(tab_propositions[i][j]))
+			{
+				var lettre = strnorm(nomsen[j]).charCodeAt(0)-A_CHARCODE;
+				//on écarte les caractères non alphétiques
+				//(problème : espaces et traits d'union)
+				if (lettre>=0 && lettre<NB_LETTRES)
 				{
-					tab_lettres[strnorm(nomsen[j]).charCodeAt(0)-A_CHARCODE]++;
+					//on ne compte pas les lettres bien placées
+					if (strnorm(nomsen[j])!=strnorm(tab_propositions[i][j]))
+					{
+						tab_lettres[lettre]++;
+					}
 				}
 			}
 		}
@@ -329,12 +349,14 @@ function aff_grille()
 				//notification colorée des accents incorrects
 				{
 					cell.style.backgroundColor="#EBCD00";
+					cell.title = "Erreur d'accentuation";
 				}
 				else
 				{
 					if (tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]>0)
 					{
 						cell.style.backgroundColor="orange";
+						cell.title = "Lettre mal placée";
 						tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]--;
 					}
 					else
