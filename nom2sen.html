@@ -42,8 +42,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.011";
-const VERDES = "G. JANDOT 16/07/2022";
+const VERNUM = "0.012";
+const VERDES = "G. JANDOT 17/07/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -519,15 +519,16 @@ function maj_score()
 	elt("score").innerHTML += " (" + pct + "%)";
 	if (pct>50)
 	{
-		couleur += (100-Math.round(pct))*3.4+34;
+		couleur += Math.round((100-pct)*3.4+34);
 		couleur += ", 204";
 	}
 	else
 	{
 		couleur += "204, ";
-		couleur += Math.round(pct)*3.4+34;
+		couleur += Math.round(pct*3.4+34);
 	}
 	couleur += ", 34)";
+	console.log(couleur);
 	elt("affscore").style.backgroundColor = couleur;
 }
 
