@@ -35,15 +35,13 @@ button { cursor:pointer; }
 		text-align:justify; }
 </STYLE>
 <!--todo
-* espaces et traits d'union mal placés
 * mal placées et mal accentuées
 * choix déjà essayés ?
-* refactoring
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.012";
-const VERDES = "G. JANDOT 17/07/2022";
+const VERNUM = "0.013";
+const VERDES = "G. JANDOT 21/07/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -64,6 +62,8 @@ var numessai = 0;
 var tab_propositions = new Array();
 var proposition = "";
 var tab_lettres = new Array();
+var nb_esp = 0;
+var nb_tr = 0;
 var tab_senateurs = []; //objets "senateur" (nom/prenom/id)
 var nomsen = "";
 var numsen = 0;
@@ -181,11 +181,6 @@ function parsing(texte)
 	
 	melange_tabsen();
 
-	for (i=0; i<NB_LETTRES; i++)
-	{
-		tab_lettres.push(0);
-	}
-
 	numsen = -1;
 	document.addEventListener('keydown', clavier);
 	hide("loading");
@@ -260,6 +255,7 @@ function clavier()
 function typing()
 {
 	elt("essai").value = elt("essai").value.replace(new RegExp(/[.?,;:]/g),"");
+	elt("essai").value = elt("essai").value.replace(new RegExp(/[0-9]/g),"");
 	
 	if (elt("essai").value.length>nomsen.length)
 	{
@@ -284,10 +280,10 @@ function typing()
 function melange_tabsen()
 {
 	//algo. de Fisher-Yates-Knuth
-    var i, j, tmp;
-    for (i = tab_senateurs.length - 1; i > 0; i--)
+    var i,j,tmp;
+    for (i=tab_senateurs.length-1; i>0; i--)
 	{
-        j = Math.floor(Math.random() * (i + 1));
+        j = Math.floor(Math.random()*(i+1));
         tmp = tab_senateurs[i];
         tab_senateurs[i] = tab_senateurs[j];
         tab_senateurs[j] = tmp;
@@ -300,6 +296,8 @@ function init_tab_lettres()
 	{
 		tab_lettres[i] = 0;
 	}
+	nb_esp = 0;
+	nb_tr = 0;
 }
 
 function aff_grille()
@@ -314,18 +312,29 @@ function aff_grille()
 		if ((i<=numessai) && (numessai>=0))
 		{
 			//inventaire des lettres du mot à trouver (26 compteurs)
+			//pour indiquer les lettres malplacées
 			init_tab_lettres();
 			for (var j=0; j<nomsen.length; j++)
 			{
 				var lettre = strnorm(nomsen[j]).charCodeAt(0)-A_CHARCODE;
-				//on écarte les caractères non alphétiques
-				//(problème : espaces et traits d'union)
 				if (lettre>=0 && lettre<NB_LETTRES)
 				{
 					//on ne compte pas les lettres bien placées
 					if (strnorm(nomsen[j])!=strnorm(tab_propositions[i][j]))
 					{
 						tab_lettres[lettre]++;
+					}
+				}
+				//espaces et traits d'union (malplacés)
+				if (nomsen[j]!=tab_propositions[i][j])
+				{
+					if (nomsen[j]==" ")
+					{
+						nb_esp++;
+					}
+					if (nomsen[j]=="-")
+					{
+						nb_tr++;
 					}
 				}
 			}
@@ -361,7 +370,25 @@ function aff_grille()
 					}
 					else
 					{
-						cell.style.backgroundColor="red";
+						if ((tab_propositions[i][j]==" ") && (nb_esp>0))
+						{
+							cell.style.backgroundColor="orange";
+							cell.title = "Espace mal placé";
+							nb_esp--;
+						}
+						else
+						{
+							if ((tab_propositions[i][j]=="-") && (nb_tr>0))
+							{
+								cell.style.backgroundColor="orange";
+								cell.title = "Trait d'union mal placé";
+								nb_tr--;
+							}
+							else
+							{
+								cell.style.backgroundColor="red";
+							}
+						}
 					}
 				}
 			}
