@@ -30,6 +30,7 @@ button { cursor:pointer; }
 
 #version a { font-size:0.7em; color:#777777; position:fixed; bottom:5px; right:9px; text-decoration:none; z-index:-1; }
 #aide { position:fixed; top:5px; right:9px; border:1px solid; border-radius:20px; cursor:pointer; padding:5px; }
+#aide:hover { color:white; background-color:blue; }
 #help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
 		overflow:auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
 		text-align:justify; }
@@ -40,8 +41,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.014";
-const VERDES = "G. JANDOT 21/09/2022";
+const VERNUM = "0.015";
+const VERDES = "G. JANDOT 26/09/2022";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -580,7 +581,7 @@ function hide_help()
 	<div id="affscore" onclick="show_help()">SCORE : <span id="score">0</span></div>
 	<div id="points"></div>
 	<button id="pass" onclick="pass()" TITLE="Abandonner et passer à la photo suivante">Passer</button>
-	<div id="aide" onclick="show_help()">?</div>
+	<div id="aide" onclick="show_help()" title="aide">?</div>
 	<div id="erreur"></div>
 	<div id="numsen"></div>
 	<img id="image" height="150px" title="Trouvez le nom correspondant"
