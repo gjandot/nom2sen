@@ -41,8 +41,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.015";
-const VERDES = "G. JANDOT 26/09/2022";
+const VERNUM = "0.016";
+const VERDES = "G. JANDOT 01/05/2023";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -84,7 +84,7 @@ function start()
 	elt("vernum").innerHTML = VERNUM;
 	elt("version").title = VERDES;
 	
-	ajax(BASE_SEN_URL + "senateurs/sens_alpha.json", parsing);
+	ajax(BASE_SEN_URL + "api-senat/senateurs.json", parsing);
 }
 
 function ajax(url,callback)
@@ -154,18 +154,13 @@ function sen2id(nom)
 
 function parsing(texte)
 {
-	var jsonobj = JSON.parse(texte);
-	var jsen = jsonobj['senateurs'];
+	var jsen = JSON.parse(texte);
 	for (var i=0; i<jsen.length; i++)
 	{
 		var senateur = new Object();
-		senateur.nom = jsen[i]['etat_civil']['nomusecap']; //particules (de) en minuscules
-		senateur.prenom = jsen[i]['etat_civil']['prenomuse'];
+		senateur.nom = jsen[i]['nom'];
+		senateur.prenom = jsen[i]['prenom'];
 		senateur.mat = jsen[i]['matricule'];
-		if (senateur.mat == "14169X") //beurck / yuck !
-		{
-			senateur.nom = "de Nicolaÿ"; //de NICOLAY, sans tréma, dans le fichier json :-(
-		}
 		senateur.id = senateur.nom + "_" + senateur.prenom + senateur.mat;
 		senateur.id = sen2id(senateur.id);
 		tab_senateurs.push(senateur);
