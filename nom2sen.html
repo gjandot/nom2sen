@@ -41,8 +41,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.016";
-const VERDES = "G. JANDOT 01/05/2023";
+const VERNUM = "0.017";
+const VERDES = "G. JANDOT 02/10/2023";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -57,7 +57,7 @@ function hide(nom_obj)		{ elt(nom_obj).style.display = "none"; }
 function clear(nom_obj)		{ elt(nom_obj).innerHTML = ""; }
 function enable(nom_obj)	{ elt(nom_obj).disabled = false; }
 function disable(nom_obj)	{ elt(nom_obj).disabled = true; }
-function id2img(id)			{ return BASE_SEN_URL + "senimg/" + id + ".jpg"; }
+function id2img(id)			{ return BASE_SEN_URL + "senimg/" + id + "_carre.jpg"; }
 
 var numessai = 0;
 var tab_propositions = new Array();
