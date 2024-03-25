@@ -34,6 +34,7 @@ button { cursor:pointer; }
 #help { position:fixed; z-index:1; margin:auto; top:50px; left:50px; padding:5px;
 		overflow:auto; background-color:#000000CC; border:3px white solid; border-radius:20px;
 		text-align:justify; }
+#note { font-size:0.8em; color:#777777; position: fixed; bottom:5px; left:5px; z-index:-1; }		
 </STYLE>
 <!--todo
 * mal placées et mal accentuées
@@ -41,8 +42,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.017";
-const VERDES = "G. JANDOT 02/10/2023";
+const VERNUM = "0.018";
+const VERDES = "G. JANDOT 25/03/2024";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -616,5 +617,6 @@ Pour le dernier essai, l'initiale est dévoilée.<BR>
 <center><button onclick="hide_help()">OK</button></center>
 <BR>
 </div>
+<div id="note">Nom2SEN n'est pas une application officielle du Sénat</id>
 </BODY>
 </HTML>
