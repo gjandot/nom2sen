@@ -42,8 +42,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.019";
-const VERDES = "G. JANDOT 29/01/2025";
+const VERNUM = "0.020";
+const VERDES = "G. JANDOT 29/04/2025";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -72,6 +72,9 @@ var numsen = 0;
 var score = 0;
 var timeout_imgload;
 var nberrimg = 0; //nombre de photos introuvables
+
+var timeout_anim;
+var anim_step = 0;
 
 const ST_GAME = 0;
 const ST_HELP = 1;
@@ -173,6 +176,7 @@ function parsing(texte)
 		for (var i=0; i<tab_senateurs.length; i++)
 		{
 			console.log(tab_senateurs[i].nom + " " + tab_senateurs[i].prenom + " (" + tab_senateurs[i].mat + ")");
+			//(ne pas supprimer)
 		}
 	}
 	
@@ -297,7 +301,22 @@ function init_tab_lettres()
 	nb_tr = 0;
 }
 
-function aff_grille()
+function anim_grille()
+{
+	if (anim_step<nomsen.length)
+	{
+		aff_grille(anim_step);
+		anim_step++;
+		timeout_anim = setTimeout(anim_grille, 2000/nomsen.length);
+	}
+	else
+	{
+		aff_grille();
+		validation_suite();
+	}
+}
+
+function aff_grille(step=-1)
 {
 	var tableau = elt("grille");
 	clear("grille");
@@ -345,45 +364,53 @@ function aff_grille()
 		  {
 			var cellText = document.createTextNode(tab_propositions[i][j]);
 			
-			if (nomsen[j]==tab_propositions[i][j])
+			if ((i==numessai) && (j>anim_step))
 			{
-				cell.style.backgroundColor="green";
+				var cellText = document.createTextNode(".");
 			}
 			else
 			{
-				if (strnorm(nomsen[j])==strnorm(tab_propositions[i][j]))
-				//notification colorée des accents incorrects
+				
+				if (nomsen[j]==tab_propositions[i][j])
 				{
-					cell.style.backgroundColor="#EBCD00";
-					cell.title = "Erreur d'accentuation";
+					cell.style.backgroundColor="green";
 				}
 				else
 				{
-					if (tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]>0)
+					if (strnorm(nomsen[j])==strnorm(tab_propositions[i][j]))
+					//notification colorée des accents incorrects
 					{
-						cell.style.backgroundColor="orange";
-						cell.title = "Lettre mal placée";
-						tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]--;
+						cell.style.backgroundColor="#EBCD00";
+						cell.title = "Erreur d'accentuation";
 					}
 					else
 					{
-						if ((tab_propositions[i][j]==" ") && (nb_esp>0))
+						if (tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]>0)
 						{
 							cell.style.backgroundColor="orange";
-							cell.title = "Espace mal placé";
-							nb_esp--;
+							cell.title = "Lettre mal placée";
+							tab_lettres[strnorm(tab_propositions[i]).charCodeAt(j)-A_CHARCODE]--;
 						}
 						else
 						{
-							if ((tab_propositions[i][j]=="-") && (nb_tr>0))
+							if ((tab_propositions[i][j]==" ") && (nb_esp>0))
 							{
 								cell.style.backgroundColor="orange";
-								cell.title = "Trait d'union mal placé";
-								nb_tr--;
+								cell.title = "Espace mal placé";
+								nb_esp--;
 							}
 							else
 							{
-								cell.style.backgroundColor="red";
+								if ((tab_propositions[i][j]=="-") && (nb_tr>0))
+								{
+									cell.style.backgroundColor="orange";
+									cell.title = "Trait d'union mal placé";
+									nb_tr--;
+								}
+								else
+								{
+									cell.style.backgroundColor="red";
+								}
 							}
 						}
 					}
@@ -464,7 +491,14 @@ function validation()
 	aff_proposition();
 	disable("submit");
 	
-	aff_grille();
+	//aff_grille();
+	anim_step = 0;
+	anim_grille();
+}
+
+function validation_suite()
+{
+	var essai = tab_propositions[tab_propositions.length-1];
 	numessai++;
 
   if (numessai==2) //(3e)=>dévoilement du prénom en indice
@@ -552,7 +586,6 @@ function maj_score()
 		couleur += Math.round(pct*3.4+34);
 	}
 	couleur += ", 34)";
-	console.log(couleur);
 	elt("affscore").style.backgroundColor = couleur;
 }
 
