@@ -42,8 +42,8 @@ button { cursor:pointer; }
 -->
 <noscript>L'application nécessite l'activation de Javascript.</noscript>
 <SCRIPT type="text/javascript">
-const VERNUM = "0.020";
-const VERDES = "G. JANDOT 29/04/2025";
+const VERNUM = "0.021";
+const VERDES = "G. JANDOT 05/05/2025";
 
 const MAXESSAI = 5;
 const BASE_SEN_URL = "https://www.senat.fr/";
@@ -81,7 +81,6 @@ const ST_HELP = 1;
 const ST_END = 2;
 var state = ST_GAME;
 var prev_state = ST_GAME;
-
 
 function start()
 {
@@ -514,6 +513,7 @@ function validation_suite()
 	{
 		var points = tab_scores[numessai-1];
 		elt("status").innerHTML = "<span class='fin gagne'>Gagné !</span> (+ " + points + " point";
+		elt("prenom").innerHTML = tab_senateurs[numsen].prenom; //affichage du prénom
 		if (points > 1)
 		{
 			elt("status").innerHTML += "s";
@@ -593,7 +593,10 @@ function maj_score()
 function show_help()
 {
 	show("help");
-	prev_state = state;
+	if (state!=ST_HELP)
+	{
+		prev_state = state;
+	}
 	state = ST_HELP;
 }
 function hide_help()
@@ -601,6 +604,7 @@ function hide_help()
 	hide("help");
 	elt("essai").focus();
 	state = prev_state;
+	console.log(state);
 }
 </SCRIPT>
 </HEAD>
